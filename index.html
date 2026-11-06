@@ -279,6 +279,12 @@
   .comment-block .field-label{ color:var(--deepsea); }
   .comment-block .field-value{ color:#33434e; font-size:13.5px; line-height:1.6; }
 
+  .resumen-pair{ display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:16px; }
+  .res-card{ background:#fff; border:1px solid var(--lightgray); border-radius:10px; padding:22px 26px; }
+  .res-card.res-opp{ border-left:4px solid var(--bloodblue); }
+  .res-list{ margin:10px 0 0; padding-left:20px; }
+  .res-list li{ font-size:14px; color:#22323d; line-height:1.6; margin-bottom:10px; }
+  @media (max-width:720px){ .resumen-pair{ grid-template-columns:1fr; } }
   .empty-state{ text-align:center; padding:60px 20px; color:var(--gray); font-size:14px; }
 
   .footer{
@@ -332,6 +338,35 @@
 
 <script>
 const HOTELS = [
+  {
+    id: "miraflores",
+    name: "Sonesta Miraflores",
+    llamados: [
+      {
+        id: "miraflores-llamado-1",
+        label: "Llamado 1",
+        date: "06 nov",
+        sortDate: "2026-11-06",
+        areas: {
+          contenido: {
+            responsable: "Sebastian",
+            tasks: [],
+            resumen: {"acciones": ["Se reorganizó el home: mayor visibilidad para Ofertas, Galería optimizada para mejorar el scroll y nuevo diseño de Contacto.", "Se optimizó el menú en los dos idiomas: Home – Ofertas – Habitaciones – Servicios – GHL Plus.", "Se revisaron Contacto, CTAs, enlaces e imágenes del sitio, sin encontrar errores."], "oportunidades": ["El hotel no tiene planes activos en la web ni en el motor de reservas. La sección de Planes está desactivada.", "El hotel tiene 2 banners activos y no registra solicitud de actualización desde abril 2026. Enviar material nuevo si desean renovarlos."]}
+          },
+          seo: {
+            responsable: "Alejandro",
+            tasks: [],
+            resumen: {"acciones": ["Se creó el perfil del hotel en OpenStreetMap y se inició la revisión de la ficha de Google para optimizar servicios y categorías.", "Se elaboró un panorama SEO para identificar los clústeres donde el hotel está posicionado."], "oportunidades": ["Agendar reunión con el equipo del hotel para presentar el panorama SEO y definir mejoras para la web.", "Definir con el equipo de contenido qué servicios agregar a la sección Servicios, ya que hoy no hay ninguno al que enlazar internamente."]}
+          },
+          chatbot: {
+            responsable: "Santiago",
+            tasks: [],
+            resumen: {"acciones": ["La herramienta no se encuentra activa en la propiedad; no se implementaron acciones en este canal."], "oportunidades": ["La ausencia del chatbot representa pérdida de inmediatez en la respuesta al usuario, factor clave en la decisión de reserva; hoy el seguimiento depende solo de correo y teléfono, con mayor riesgo de abandono.", "Se sugiere implementar una pestaña de FAQs en la web mientras se define la integración del chatbot, para dar al usuario respuestas inmediatas a dudas básicas (horarios, servicios, ubicación, políticas)."]}
+          }
+        }
+      }
+    ]
+  },
   {
     id: "corales",
     name: "GHL Relax Corales de Indias",
@@ -2776,7 +2811,7 @@ function renderResumen(){
               <td>
                 <div style="display:flex; align-items:center; gap:10px;">
                   <div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${h.pct}%;"></div></div>
-                  <span style="font-size:12.5px; color:var(--gray); white-space:nowrap;">${h.done}/${h.total} (${h.pct}%)</span>
+                  <span style="font-size:12.5px; color:var(--gray); white-space:nowrap;">${h.total ? h.done+"/"+h.total+" ("+h.pct+"%)" : "Resumen cualitativo"}</span>
                 </div>
               </td>
             </tr>
@@ -2818,7 +2853,7 @@ function renderBubbles(llamado){
     return `
       <div class="bubble ${areaKey} ${areaKey===currentArea?'active':''}" onclick="selectArea('${areaKey}')">
         <span class="dot"></span>${AREA_LABELS[areaKey]}
-        <span class="count-pill">${done}/${total}</span>
+        <span class="count-pill">${total ? done+"/"+total : "—"}</span>
       </div>
     `;
   }).join("");
@@ -2832,7 +2867,7 @@ function renderSummary(llamado){
     return `
       <div class="kpi-card ${areaKey}">
         <div class="area-name">${AREA_LABELS[areaKey]}</div>
-        <div class="count-row"><span class="count">${done}</span><span class="count-of">/ ${total} completadas</span></div>
+        <div class="count-row">${total ? `<span class="count">${done}</span><span class="count-of">/ ${total} completadas</span>` : `<span class="count-of">Resumen cualitativo</span>`}</div>
         <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;"></div></div>
       </div>
     `;
@@ -2872,19 +2907,30 @@ function renderTaskCard(t){
   `;
 }
 
+function renderResumenBlocks(r){
+  const list = arr => (arr && arr.length) ? `<ul class="res-list">${arr.map(i=>`<li>${i}</li>`).join("")}</ul>` : `<div class="field-value">—</div>`;
+  return `
+    <div class="resumen-pair">
+      <div class="res-card"><div class="field-label">Acciones realizadas</div>${list(r.acciones)}</div>
+      <div class="res-card res-opp"><div class="field-label">Oportunidades identificadas</div>${list(r.oportunidades)}</div>
+    </div>`;
+}
+
 function renderContent(llamado){
   const el = document.getElementById("content");
   const area = llamado.areas[currentArea];
-  if(!area || !area.tasks.length){
+  const hasTasks = area && area.tasks && area.tasks.length;
+  if(!area || (!hasTasks && !area.resumen)){
     el.innerHTML = `<div class="empty-state">Aún no hay acciones registradas en esta área para este llamado.</div>`;
     return;
   }
   el.innerHTML = `
     <div class="area-panel-heading">
       <h2>${AREA_LABELS[currentArea]}</h2>
-      <span class="count-tag">· ${area.tasks.length} acciones · Responsable: ${area.responsable}</span>
+      <span class="count-tag">· ${hasTasks ? area.tasks.length + ' acciones · ' : 'Resumen cualitativo · '}Responsable: ${area.responsable}</span>
     </div>
-    ${area.tasks.map(renderTaskCard).join("")}
+    ${area.resumen ? renderResumenBlocks(area.resumen) : ''}
+    ${hasTasks ? area.tasks.map(renderTaskCard).join("") : ''}
   `;
 }
 
